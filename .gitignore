@@ -1,0 +1,39 @@
+# Project documentation and lectures (not part of codebase)
+CLAUDE.md
+consensus.pdf
+Fall_2026_26_Project_Bear_bones_Log_Replication_v2.2.1.pdf
+replication.pdf
+Tutorial_01_RPC_GRPC-3.0.0.pdf
+Tutorial_2_REST_handout-3.0.0.pdf
+Tutorial_05_etcd_handout-3.0.0.pdf
+Vllm_Profiling (1).pdf
+
+# Report files
+report.md
+report.tex
+report.pdf
+
+# Student info
+students.json
+
+# Build artifacts
+server
+
+# Python virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Misc
+repo.url
+progress.txt
