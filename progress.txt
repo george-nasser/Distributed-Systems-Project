@@ -1,0 +1,113 @@
+1-  Did GO Tour - https://go.dev/tour/
+2-  gRPC GO Quickstart - https://grpc.io/docs/languages/go/quickstart/
+3-  Read Paxos lecture slides
+4-  created paxos.proto (defined the messages template between the servers)
+5-  created acceptor.go file which defines the acceptor variables and how to 
+    handle perpare request, accept request, commit request
+6-  created proposer.go file which defines the proposer variables and 
+    how he proposes his value
+7-  created main.go which replecates creating a server (which is an acceptor proposer)
+    and sending a propose request and deciding on a value
+    create 4 servers and let one send a propose request
+8-  created membershio.go file which implements etcd memberships
+    so all the servers can know when a server has joined or a server has left
+9-  updated main.go to test that the servers know when a server joined/left
+    create 4 servers and let one of the servers leave
+10- update paxos.proto - added a field specifing which one of the values we are
+    makiing consesus on (start of multi-paxos implementation)
+11- ubdated acceptor.go made the acceptor include multiple accepor instances and 
+    each request work on the instance id that is sent with the rquest (see 10)
+12- updater proposer.go that the propos requsts that he recieves has a vlaue
+    and an instance id to propose on
+13- updated main.go to use the instance id also to get it and the value via http request
+    created 3 servers and tried to make consensus on 3 instances
+14-created scooter.go
+    which defines the implemntation of each of the commands
+    create,reserve,release
+15-created replicated_log.go
+    defines the log which will store all the operations that are done
+16-created handlers.go
+    which defines the translaation from get,put,post to 
+    create,reserve,release also appends the command to the log
+17-updated main.go
+    added the api handler and the log,the statemachine to the main 
+    and in the end listen on a port for the command get,put,post
+    also tested by creating a server and then scooters and tried to 
+    reserve/ release them
+18- update paxos.proto 
+    added the command to the commit request so all the servers 
+    have the same replicated log
+19- update proposer to get the command in propose
+    the propser get the command and in the commit message he sends it to all
+20- update acceptor to have the log and the statemachine with it
+    and when recieving a commit message he adds the command to the log
+21- update handle file so the proposer gets the command 
+22- update main - acceptor, api handlers  get state machine and log
+    and tested the replicated log by ending commands to one server
+    and seeing them on the other servers
+
+23- implemented log recovery
+    created recovery.go file with LogRecovery struct that implements
+    the LogRecoveryServer gRPC interface. added GetLog rpc method that
+    returns log entries starting from a given index. when a server starts
+    it calls Recover() which connects to other servers via gRPC and asks
+    for their log entries. the recovering server sends its current nextIndex
+    and the other server returns all entries from that index to its current
+    commit index. the recovering server then applies all the missing entries
+    to its log and state machine. also updated paxos.proto to add the
+    LogRecovery service with GetLogRequest (has starting_index) and
+    GetLogResponse (has log entries, commit_index, snapshot_data, snapshot_index)
+    and registered LogRecoveryServer in main.go
+
+24- implemented snapshots
+    added snapshot support to scooter.go (state machine). added snapshotData
+    and snapshotIndex fields to ScooterStateMachine struct. TakeSnapshot()
+    serializes all scooters to json and stores it with the current index.
+    GetSnapshot() returns the snapshot data and index. LoadSnapshot()
+    deserializes the json and restores the scooters map. also updated
+    replicated_log.go with Store() method that deletes old log entries
+    up to the snapshot index (log compaction). added /snapshot POST endpoint
+    in handlers.go that calls TakeSnapshot on state machine and Store on log.
+    updated GetLog in recovery.go to include snapshot data in response -
+    if the requesting server is behind the snapshot index, we send the
+    snapshot so it can restore state without needing all old log entries
+
+25- fixed proposer.go - proposer wasnt voting for itself
+    the proposer was counting itself in the majority calculation
+    (totalAcceptors = len(servers) + 1) but it wasnt actually calling
+    the local acceptor. added localAcceptor field to Proposer struct
+    and updated NewProposer to accept the local acceptor as parameter.
+    now in Propose() we call localAcceptor.Prepare(), localAcceptor.Accept(),
+    and localAcceptor.Commit() so the proposer actually participates in voting
+
+26- fixed handlers.go - removed duplicate state application
+    the handlers were calling api.log.Append() and api.stateMachine.Apply()
+    after Propose() returned. but the Commit handler in acceptor.go was also
+    doing log.Append() and stateMachine.Apply(). this caused state to be applied
+    twice on the proposer's server. removed the duplicate calls from handlers
+    and let the Commit phase handle all state application
+
+27- updated main.go - pass acceptor to proposer
+    changed NewProposer call to pass the acceptor so proposer can call
+    local acceptor methods directly without going through gRPC
+
+28- fixed replicated_log.go - made GetNextIndex atomic
+    before: GetNextIndex() just returned nextIndex without incrementing
+    this caused race condition when multiple concurrent requests called it
+    they would get the same index and try to propose on same instance
+    now: GetNextIndex() returns the current nextIndex AND increments it
+    so each concurrent request gets a unique instance id
+
+29- added /servers endpoint to handlers.go
+    added GetServers handler that returns server info with member_id,
+    leader_id, and is_leader fields. this is needed for tests to check
+    leader election. also added membership service to API struct and
+    updated NewAPI to accept membership and serverID parameters
+
+30- updated main.go - pass membership to API
+    reordered initialization so membership service is created before API
+    then pass membershipService and server id to NewAPI
+
+31- updated tests/conftest.py - changed api_url default port
+    changed default api_url from localhost:50053 (traefik) to localhost:8081
+    (server 1 directly) since traefik is disabled in docker-compose

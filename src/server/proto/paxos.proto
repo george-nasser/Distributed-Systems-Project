@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package paxos;
+
+option go_package = "ds_project/src/server/proto";
+
+service Paxos{
+    rpc Prepare(PrepareRequest) returns (PromiseResponse);
+    rpc Accept(AcceptRequest) returns (AcceptedResponse);
+    rpc Commit(CommitRequest) returns (CommitResponse);
+}
+
+message PrepareRequest {
+    repeated int64 round = 1;
+    int64 instance_id = 2;
+}
+
+message PromiseResponse{
+    repeated int64 round = 1;
+    bool ack = 2;
+    repeated int64 last_good_round = 3;
+    int64 value = 4;
+    int64 instance_id = 5;
+}
+
+message AcceptRequest{
+    repeated int64 round = 1;
+    int64 value = 2;
+    int64 instance_id = 3;
+
+}
+
+message AcceptedResponse{
+    repeated int64 round = 1;
+    bool ack = 2;
+    int64 instance_id = 3;
+
+}
+
+message CommitRequest{
+    int64 value = 1;
+    int64 instance_id = 2;
+    bytes command = 3;
+
+}
+
+message CommitResponse{
+
+}
+
+service LogRecovery{
+    rpc GetLog(GetLogRequest) returns (GetLogResponse);
+}
+
+message GetLogRequest{
+    int64 starting_index = 1;
+
+}
+
+message GetLogResponse{
+    repeated LogEntry log_entry = 1;
+    int64 commit_index = 2;
+    bytes snapshot_data = 3;
+    int64 snapshot_index = 4;
+}
+
+message LogEntry{
+    int64 index = 1;
+    bytes command = 2;
+}
+
+
