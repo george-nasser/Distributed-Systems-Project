@@ -73,6 +73,19 @@ func Recover(servers []string, stateMachine *statemachine.ScooterStateMachine, l
 			continue
 		}
 
+		// Load snapshot if available and we're behind
+		if len(response.SnapshotData) > 0 && response.SnapshotIndex >= log.GetNextIndex() {
+			err := stateMachine.LoadSnapshot(response.SnapshotData, response.SnapshotIndex)
+			if err != nil {
+				continue
+			}
+			// Update all log indices to reflect snapshot state
+			log.SetStoredIndex(response.SnapshotIndex)
+			log.SetCommitIndex(response.SnapshotIndex)
+			log.SetNextIndex(response.SnapshotIndex + 1)
+		}
+
+		// Apply log entries after the snapshot
 		for _, entry := range response.LogEntry {
 			log.Append(entry.Index, entry.Command)
 			stateMachine.Apply(entry.Command)

@@ -78,6 +78,12 @@ func (log *ReplicatedLog) GetStoredIndex() int64 {
 	return log.storedIndex
 }
 
+func (log *ReplicatedLog) SetNextIndex(index int64) {
+	log.mutex.Lock()
+	defer log.mutex.Unlock()
+	log.nextIndex = index
+}
+
 func (log *ReplicatedLog) Store(upToIndex int64) {
 	log.mutex.Lock()
 	defer log.mutex.Unlock()
