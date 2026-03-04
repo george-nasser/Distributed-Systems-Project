@@ -43,15 +43,3 @@ Read all registered servers:
 ```bash
 etcdctl get "/servers/" --prefix
 ```
-
-### SPA
-Initial Setup:
-* Install node
-* run `npm install @angular/cli`
-* `cd` to spa directory (`cd <repo-root>/etc/spa`) and run `npm install`
-
-To run the application in dev mode:
-```bash
-cd <repo-root>/etc/spa
-npm start
-```
